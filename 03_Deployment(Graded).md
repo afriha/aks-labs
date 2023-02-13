@@ -1,4 +1,4 @@
-# Pod configuration
+# Deployment configuration
 The code snippet creates a simple nginx deployement:
 
 ```yaml
