@@ -1,5 +1,7 @@
 # Ingress
 
+## 1. A single ingress controller
+
 Ingress goes beyond service by giving capabilities to expose application with http path.
 We will start by installing the nginx ingress controller. For this, we will rely on helm and the chart provided by the community
 
@@ -302,3 +304,68 @@ Accept-Ranges: bytes
 </html
 
 ```
+## 2. Deploy multiple ingress controllers
+
+By default, deploying multiple Ingress controllers (e.g., ingress-nginx) will result in all controllers simultaneously racing to update Ingress status fields in confusing ways.
+
+To fix this problem, use IngressClasses. The kubernetes.io/ingress.class annotation is not being preferred or suggested to use as it can be deprecated in the future. Better to use the field ingress.spec.ingressClassName.
+
+Let's deploy an ingress controller with a custom ingress class name:
+
+```bash
+yumemaru@Azure:~/LabAKS$ helm install ingress-nginx-friha \
+ingress-nginx/ingress-nginx -n friha \
+--set controller.ingressClassResource.name=nginx-friha \
+--set controller.ingressClassResource.controllerValue=k8s.io/ingress-nginx-friha \
+--set controller.ingressClass=nginx-friha
+
+```
+
+Now we want to go our ingress file and add the ingress class parameter. That will ensure that our ingress resource is satisfied by the correct ingress controller. 
+
+```yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-demo
+  namespace: ingressapp-demo
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx-friha
+  rules:
+  - http:
+      paths:
+      - path: /main(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: mainpage-svc
+            port: 
+              number: 80
+      - path: /doc(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: docpage-svc
+            port: 
+              number: 80
+      - path: /(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: mainpage-svc
+            port:
+              number: 80
+```
+
+We can check the ingress status:
+
+```bash
+
+yumemaru@Azure:~/LabAKS$ kubectl get ingress -n ingressapp-demo 
+NAME           CLASS        HOSTS    ADDRESS         PORTS   AGE
+ingress-demo   nginx-friha   *       52.151.229.94   80      75m
