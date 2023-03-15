@@ -156,10 +156,10 @@ spec:
   limits:
   - default:
       cpu: 800m
-      memory: 500Mi
+      memory: 512Mi
     defaultRequest:
       cpu: 500m
-      memory: 500Mi
+      memory: 512Mi
     max:
       cpu: "1"
       memory: 2Gi
@@ -186,4 +186,23 @@ spec:
 ```
 ```bash
 kubectl apply -f podlimits.yaml --namespace=limits
+```
+View detailed information about the Pod:
+```bash
+kubectl get pod default-mem-demo --output=yaml --namespace=limits
+```
+The output shows that the Pod's container has a memory request of 256 MiB and a memory limit of 512 MiB. These are the default values specified by the LimitRange.
+
+```yaml
+containers:
+- image: nginx
+  imagePullPolicy: Always
+  name: default-mem-demo-ctr
+  resources:
+    limits:
+      memory: 512Mi
+      cpu: 800m
+    requests:
+      memory: 512Mi
+      cpu: 500m
 ```
